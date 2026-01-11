@@ -2,7 +2,7 @@
 
 **Last Updated:** 2026-01-11
 
-## Current Version: 1.1.0
+## Current Version: 1.2.0
 
 ### Status: Release Ready
 
@@ -17,6 +17,24 @@
 - **Hook Integration** - Automatic updates in Claude Code
 - **Manual Check** - Ask Claude "check context" in Desktop
 - **Packaged Dist** - Windows installers (MSI + NSIS setup)
+
+---
+
+## Version 1.2.0 Changes (2026-01-11)
+
+### Cross-Platform Support
+
+- Added GitHub Actions CI/CD for Windows, macOS, and Linux builds
+- Fixed Rust spawn command with proper Unix process detachment
+- Platform-specific executable names (no .exe on Unix)
+- Automated release pipeline creates archives for all platforms
+
+### Danger Pulse Fix (1.1.1)
+
+- Pulse animation was too subtle (opacity 1 → 0.7 only)
+- Now pulses harder (opacity 1 → 0.5) with red glow effect
+- Box-shadow pulses from subtle to bright red
+- Actually visible now
 
 ---
 
@@ -115,9 +133,10 @@ The overlay now handles all failure states gracefully:
 
 ## Future Improvements
 
+- [x] ~~Make danger pulse more visible~~ (Fixed 2026-01-11 - added glow effect)
+- [x] ~~Cross-platform support (macOS, Linux)~~ (Added 2026-01-11 - GitHub Actions CI/CD)
 - [ ] Reduce MCP server size (consider Deno or native implementation)
 - [ ] Add tiktoken to hook script for accurate counting
-- [ ] Cross-platform testing (macOS, Linux)
 - [ ] Add context history graph
 - [ ] Configurable thresholds via UI
 - [ ] System tray integration

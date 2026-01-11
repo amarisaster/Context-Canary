@@ -19,21 +19,36 @@ A token counter overlay for Claude. Warns you before context compaction hits so 
 | Connected (Warning) | Yellow | Green | 70-90% context used |
 | Connected (Danger) | Red (pulsing) | Green | Over 90% — compaction imminent |
 
-## Quick Install (Windows)
+## Quick Install
 
 **Download the latest release from the [Releases page](../../releases).**
 
-### Option 1: Installer (Recommended)
-1. Download `Context.Canary_1.0.0_x64-setup.exe` from Releases
-2. Run the installer
+### Windows
+
+**Option 1: Installer (Recommended)**
+1. Download `context-canary-windows.zip` from Releases
+2. Extract and run `Context Canary_x64-setup.exe`
 3. Launch "Context Canary" from the Start menu
 4. Add the MCP to Claude Desktop config (see below)
 
-### Option 2: Portable
-1. Download `context-canary-overlay.exe` and `context-canary-mcp.exe` from Releases
-2. Place them in the same folder
-3. Run `context-canary-overlay.exe`
-4. Add the MCP to Claude Desktop config (see below)
+**Option 2: Portable**
+1. Download `context-canary-windows.zip` from Releases
+2. Extract `context-canary-overlay.exe` and `context-canary-mcp.exe`
+3. Place them in the same folder and run the overlay
+
+### macOS
+
+1. Download `context-canary-macos.zip` from Releases
+2. Extract and open the `.dmg` file
+3. Drag Context Canary to Applications
+4. Place `context-canary-mcp` in the same folder or add to PATH
+
+### Linux
+
+1. Download `context-canary-linux.tar.gz` from Releases
+2. Extract: `tar -xzvf context-canary-linux.tar.gz`
+3. Run the AppImage or install the .deb package
+4. Ensure `context-canary-mcp` is in the same directory or PATH
 
 ## Claude Desktop Configuration
 
@@ -174,7 +189,9 @@ To enable automatic updates in Claude Code:
 
 ### Overlay shows gray bar / "Disconnected"
 - Wait 10-15 seconds — it will auto-spawn the MCP
-- If it stays gray, check if `context-canary-mcp.exe` is in the same folder as the overlay
+- If it stays gray, check if the MCP binary is in the same folder as the overlay
+  - Windows: `context-canary-mcp.exe`
+  - macOS/Linux: `context-canary-mcp`
 
 ### Overlay shows 0% but I have a long conversation
 - In Desktop: Ask Claude to "check context"
@@ -187,7 +204,9 @@ To enable automatic updates in Claude Code:
 
 ### Port 19532 in use
 - Another instance of the MCP might be running
-- Kill existing processes: `taskkill /IM context-canary-mcp.exe /F`
+- Kill existing processes:
+  - Windows: `taskkill /IM context-canary-mcp.exe /F`
+  - macOS/Linux: `pkill -f context-canary-mcp`
 
 ## Tech Stack
 

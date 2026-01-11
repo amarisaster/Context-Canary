@@ -22,7 +22,12 @@ fn spawn_mcp_server(state: State<McpState>) -> Result<String, String> {
     let exe_dir = exe_path.parent()
         .ok_or("Failed to get exe directory")?;
 
+    // Platform-specific executable name
+    #[cfg(target_os = "windows")]
     let mcp_path = exe_dir.join("context-canary-mcp.exe");
+
+    #[cfg(not(target_os = "windows"))]
+    let mcp_path = exe_dir.join("context-canary-mcp");
 
     if !mcp_path.exists() {
         return Err(format!("MCP server not found at: {:?}", mcp_path));
@@ -41,9 +46,17 @@ fn spawn_mcp_server(state: State<McpState>) -> Result<String, String> {
             .map_err(|e| format!("Failed to spawn MCP: {}", e))?;
     }
 
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
     {
+        use std::os::unix::process::CommandExt;
+        use std::process::Stdio;
+
+        // Detach from parent process group and redirect stdio to null
         Command::new(&mcp_path)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .process_group(0)  // Create new process group (detach)
             .spawn()
             .map_err(|e| format!("Failed to spawn MCP: {}", e))?;
     }
