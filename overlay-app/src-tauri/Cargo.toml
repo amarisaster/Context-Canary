@@ -1,0 +1,23 @@
+[package]
+name = "context-canary-overlay"
+version = "1.0.0"
+description = "Context Canary - Token Counter Overlay"
+authors = ["Context Canary"]
+license = "MIT"
+edition = "2021"
+
+[lib]
+name = "context_canary_overlay_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]

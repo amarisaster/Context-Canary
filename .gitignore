@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+overlay-app/dist/
+overlay-app/src-tauri/target/
+
+# Binaries (upload these as GitHub Releases instead)
+dist/*.exe
+dist/*.msi
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log

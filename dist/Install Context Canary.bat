@@ -1,0 +1,3 @@
+@echo off
+echo Starting Context Canary Installer...
+powershell -ExecutionPolicy Bypass -File "%~dp0install.ps1"
