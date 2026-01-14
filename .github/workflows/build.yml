@@ -40,11 +40,17 @@ jobs:
         working-directory: mcp-server
         run: bun build index.js --compile --target=${{ matrix.target }} --outfile=context-canary-mcp${{ matrix.ext }}
 
+      - name: Copy tiktoken WASM
+        working-directory: mcp-server
+        run: cp node_modules/tiktoken/tiktoken_bg.wasm .
+
       - name: Upload MCP artifact
         uses: actions/upload-artifact@v4
         with:
           name: mcp-${{ matrix.os }}
-          path: mcp-server/context-canary-mcp${{ matrix.ext }}
+          path: |
+            mcp-server/context-canary-mcp${{ matrix.ext }}
+            mcp-server/tiktoken_bg.wasm
 
   build-overlay:
     strategy:
@@ -132,18 +138,21 @@ jobs:
 
           # Windows
           cp artifacts/mcp-windows-latest/context-canary-mcp.exe release/windows/
+          cp artifacts/mcp-windows-latest/tiktoken_bg.wasm release/windows/
           cp artifacts/overlay-windows/context-canary-overlay.exe release/windows/ 2>/dev/null || true
           cp artifacts/overlay-windows/*.msi release/windows/ 2>/dev/null || true
           cp artifacts/overlay-windows/*.exe release/windows/ 2>/dev/null || true
 
           # Linux
           cp artifacts/mcp-ubuntu-latest/context-canary-mcp release/linux/
+          cp artifacts/mcp-ubuntu-latest/tiktoken_bg.wasm release/linux/
           cp artifacts/overlay-linux/context-canary-overlay release/linux/ 2>/dev/null || true
           cp artifacts/overlay-linux/*.deb release/linux/ 2>/dev/null || true
           cp artifacts/overlay-linux/*.AppImage release/linux/ 2>/dev/null || true
 
           # macOS
           cp artifacts/mcp-macos-latest/context-canary-mcp release/macos/
+          cp artifacts/mcp-macos-latest/tiktoken_bg.wasm release/macos/
           cp -r artifacts/overlay-macos/*.dmg release/macos/ 2>/dev/null || true
           cp -r artifacts/overlay-macos/*.app release/macos/ 2>/dev/null || true
 
