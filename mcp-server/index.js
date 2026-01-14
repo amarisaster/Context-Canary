@@ -15,17 +15,19 @@ import { existsSync } from "fs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Get overlay path - works for both compiled exe and source
+// Get overlay path - works for both compiled exe and source, all platforms
 function getOverlayPath() {
   const exeDir = dirname(process.execPath);
-  const overlayInExeDir = join(exeDir, "context-canary-overlay.exe");
+  const isWindows = process.platform === "win32";
+  const overlayName = isWindows ? "context-canary-overlay.exe" : "context-canary-overlay";
+  const overlayInExeDir = join(exeDir, overlayName);
 
   // If running as compiled exe, overlay should be in same folder
   if (existsSync(overlayInExeDir)) {
     return overlayInExeDir;
   }
   // Fallback for running from source
-  return join(__dirname, "..", "dist", "context-canary-overlay.exe");
+  return join(__dirname, "..", "dist", overlayName);
 }
 
 // Initialize tiktoken encoder (cl100k_base is used by Claude and GPT-4)
@@ -66,15 +68,20 @@ function launchOverlay() {
     return;
   }
 
-  // Check if overlay is already running
-  exec('tasklist /FI "IMAGENAME eq context-canary-overlay.exe" /FO CSV', (err, stdout) => {
-    if (err) {
-      console.error("[Canary] Failed to check overlay status:", err.message);
-      return;
-    }
+  // Platform-specific process check
+  const isWindows = process.platform === "win32";
+  const checkCmd = isWindows
+    ? 'tasklist /FI "IMAGENAME eq context-canary-overlay.exe" /FO CSV'
+    : 'pgrep -f context-canary-overlay';
+  const checkString = isWindows ? "context-canary-overlay.exe" : "";
 
-    // If overlay is not in the process list, launch it
-    if (!stdout.includes("context-canary-overlay.exe")) {
+  exec(checkCmd, (err, stdout) => {
+    // On Unix, pgrep returns error if no process found - that's fine
+    const notRunning = isWindows
+      ? !stdout.includes(checkString)
+      : (err || !stdout.trim());
+
+    if (notRunning) {
       console.error("[Canary] Launching overlay...");
       const overlay = spawn(CONFIG.overlayPath, [], {
         detached: true,
