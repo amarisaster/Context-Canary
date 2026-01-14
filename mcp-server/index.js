@@ -15,6 +15,19 @@ import { existsSync } from "fs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+// Get overlay path - works for both compiled exe and source
+function getOverlayPath() {
+  const exeDir = dirname(process.execPath);
+  const overlayInExeDir = join(exeDir, "context-canary-overlay.exe");
+
+  // If running as compiled exe, overlay should be in same folder
+  if (existsSync(overlayInExeDir)) {
+    return overlayInExeDir;
+  }
+  // Fallback for running from source
+  return join(__dirname, "..", "dist", "context-canary-overlay.exe");
+}
+
 // Initialize tiktoken encoder (cl100k_base is used by Claude and GPT-4)
 let encoder = null;
 try {
@@ -30,7 +43,7 @@ const CONFIG = {
   warningThreshold: 0.7,      // 70% - yellow
   dangerThreshold: 0.9,       // 90% - red
   wsPort: 19532,              // WebSocket port for overlay
-  overlayPath: join(__dirname, "..", "dist", "context-canary-overlay.exe"),
+  overlayPath: getOverlayPath(),
 };
 
 // WebSocket server for broadcasting to overlay
