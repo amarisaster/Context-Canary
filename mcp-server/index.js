@@ -8,6 +8,12 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { WebSocketServer } from "ws";
 import { get_encoding } from "tiktoken";
+import { spawn, exec } from "child_process";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
+import { existsSync } from "fs";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Initialize tiktoken encoder (cl100k_base is used by Claude and GPT-4)
 let encoder = null;
@@ -24,6 +30,7 @@ const CONFIG = {
   warningThreshold: 0.7,      // 70% - yellow
   dangerThreshold: 0.9,       // 90% - red
   wsPort: 19532,              // WebSocket port for overlay
+  overlayPath: join(__dirname, "..", "dist", "context-canary-overlay.exe"),
 };
 
 // WebSocket server for broadcasting to overlay
@@ -37,6 +44,37 @@ let lastKnownState = {
   status: "safe",
   contextWindow: CONFIG.contextWindow,
 };
+
+// Launch overlay if not already running
+function launchOverlay() {
+  // Check if overlay exe exists
+  if (!existsSync(CONFIG.overlayPath)) {
+    console.error("[Canary] Overlay not found at:", CONFIG.overlayPath);
+    return;
+  }
+
+  // Check if overlay is already running
+  exec('tasklist /FI "IMAGENAME eq context-canary-overlay.exe" /FO CSV', (err, stdout) => {
+    if (err) {
+      console.error("[Canary] Failed to check overlay status:", err.message);
+      return;
+    }
+
+    // If overlay is not in the process list, launch it
+    if (!stdout.includes("context-canary-overlay.exe")) {
+      console.error("[Canary] Launching overlay...");
+      const overlay = spawn(CONFIG.overlayPath, [], {
+        detached: true,
+        stdio: "ignore",
+        windowsHide: false,
+      });
+      overlay.unref();
+      console.error("[Canary] Overlay launched");
+    } else {
+      console.error("[Canary] Overlay already running");
+    }
+  });
+}
 
 function startWebSocketServer() {
   try {
@@ -248,6 +286,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   // Start WebSocket server for overlay communication
   startWebSocketServer();
+
+  // Launch overlay automatically
+  launchOverlay();
 
   // Start MCP server
   const transport = new StdioServerTransport();
