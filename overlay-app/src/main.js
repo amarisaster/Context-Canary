@@ -2,13 +2,20 @@
 // Connects to MCP server via WebSocket and displays token usage
 
 import { invoke } from '@tauri-apps/api/core';
+import { WebviewWindow, getAllWebviewWindows } from '@tauri-apps/api/webviewWindow';
 
 const CONFIG = {
   wsPort: 19532,
   reconnectInterval: 3000,
   contextWindow: 200000,
-  maxReconnectAttempts: 3,  // Attempts before trying to spawn MCP
-  spawnCooldown: 10000,     // Wait 10s between spawn attempts
+  maxReconnectAttempts: 3,
+  spawnCooldown: 10000,
+};
+
+// Default thresholds
+let thresholds = {
+  warning: 70,
+  danger: 85,
 };
 
 // DOM Elements
@@ -17,6 +24,12 @@ const percentage = document.getElementById('percentage');
 const statusIcon = document.getElementById('status-icon');
 const connection = document.getElementById('connection');
 const canaryBar = document.getElementById('canary-bar');
+const settingsBtn = document.getElementById('settings-btn');
+const settingsPanel = document.getElementById('settings-panel');
+const closeSettingsBtn = document.getElementById('close-settings');
+const warningInput = document.getElementById('warning-threshold');
+const dangerInput = document.getElementById('danger-threshold');
+const saveBtn = document.getElementById('save-settings');
 
 let ws = null;
 let reconnectTimer = null;
@@ -24,6 +37,36 @@ let reconnectAttempts = 0;
 let lastSpawnAttempt = 0;
 let isConnected = false;
 let hasReceivedData = false;
+
+// Load thresholds from localStorage
+function loadThresholds() {
+  const saved = localStorage.getItem('canary-thresholds');
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      thresholds.warning = parsed.warning || 70;
+      thresholds.danger = parsed.danger || 85;
+    } catch (e) {
+      console.error('[Canary] Failed to parse saved thresholds:', e);
+    }
+  }
+  // Update inputs to match loaded values
+  if (warningInput) warningInput.value = thresholds.warning;
+  if (dangerInput) dangerInput.value = thresholds.danger;
+}
+
+// Save thresholds to localStorage
+function saveThresholds() {
+  localStorage.setItem('canary-thresholds', JSON.stringify(thresholds));
+}
+
+// Calculate status based on local thresholds
+function calculateStatus(pct) {
+  const pctNum = pct * 100;
+  if (pctNum >= thresholds.danger) return 'danger';
+  if (pctNum >= thresholds.warning) return 'warning';
+  return 'safe';
+}
 
 // Show disconnected state
 function showDisconnected(reason = 'Disconnected') {
@@ -47,7 +90,7 @@ function showSpawning() {
 // Update the visual bar with data
 function updateBar(data) {
   hasReceivedData = true;
-  const { tokens, percentage: pct, status, contextWindow } = data;
+  const { tokens, percentage: pct, contextWindow } = data;
 
   // Remove disconnected state
   barFill.classList.remove('disconnected');
@@ -58,6 +101,9 @@ function updateBar(data) {
 
   // Update percentage text
   percentage.textContent = `${fillPercent.toFixed(1)}%`;
+
+  // Calculate status locally using our thresholds
+  const status = calculateStatus(pct);
 
   // Update status class and icon
   barFill.className = 'bar-fill ' + status;
@@ -190,15 +236,59 @@ async function scheduleReconnect() {
   }, CONFIG.reconnectInterval);
 }
 
+// Open settings window
+async function openSettingsWindow() {
+  try {
+    // Check if settings window already exists
+    let settingsWin = await WebviewWindow.getByLabel('settings');
+
+    if (settingsWin) {
+      // Window exists, just show and focus it
+      await settingsWin.show();
+      await settingsWin.setFocus();
+    } else {
+      // Window doesn't exist, create it
+      settingsWin = new WebviewWindow('settings', {
+        url: 'settings.html',
+        title: 'Canary Settings',
+        width: 250,
+        height: 180,
+        resizable: false,
+        center: true,
+        decorations: true,
+      });
+
+      // Wait for window to be created
+      settingsWin.once('tauri://created', () => {
+        console.log('[Canary] Settings window created');
+      });
+
+      settingsWin.once('tauri://error', (e) => {
+        console.error('[Canary] Settings window error:', e);
+      });
+    }
+  } catch (e) {
+    console.error('[Canary] Failed to open settings:', e);
+  }
+}
+
+// Settings UI handlers
+function initSettingsUI() {
+  if (!settingsBtn) return;
+
+  settingsBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openSettingsWindow();
+  });
+}
+
 // Initialize
 function init() {
-  // Set initial state - disconnected until we connect
+  loadThresholds();
+  initSettingsUI();
   showDisconnected('Connecting...');
-
-  // Connect to MCP server
   connect();
 
-  // Handle window drag (Tauri)
   canaryBar.addEventListener('mousedown', (e) => {
     if (e.target === canaryBar || e.target.closest('.bar-container')) {
       // Tauri handles this via CSS -webkit-app-region: drag

@@ -17,6 +17,29 @@
         <span class="percentage" id="percentage">0%</span>
         <span class="connection" id="connection">●</span>
       </div>
+      <button class="settings-btn" id="settings-btn" title="Settings">⚙️</button>
+    </div>
+
+    <div class="settings-panel" id="settings-panel">
+      <div class="settings-header">
+        <span>Thresholds</span>
+        <button class="close-btn" id="close-settings">×</button>
+      </div>
+      <div class="settings-row">
+        <label for="warning-threshold">🟡 Warning</label>
+        <div class="input-group">
+          <input type="number" id="warning-threshold" min="1" max="99" value="70">
+          <span>%</span>
+        </div>
+      </div>
+      <div class="settings-row">
+        <label for="danger-threshold">🔴 Danger</label>
+        <div class="input-group">
+          <input type="number" id="danger-threshold" min="1" max="99" value="85">
+          <span>%</span>
+        </div>
+      </div>
+      <button class="save-btn" id="save-settings">Save</button>
     </div>
   </div>
   <script type="module" src="/src/main.js"></script>

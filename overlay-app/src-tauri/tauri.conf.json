@@ -24,6 +24,17 @@
         "center": false,
         "x": 20,
         "y": 20
+      },
+      {
+        "label": "settings",
+        "title": "Canary Settings",
+        "url": "settings.html",
+        "width": 250,
+        "height": 180,
+        "resizable": false,
+        "center": true,
+        "decorations": true,
+        "visible": false
       }
     ],
     "security": {
