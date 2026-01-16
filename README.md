@@ -6,6 +6,7 @@ A token counter overlay for Claude. Warns you before context compaction hits so 
 
 - Counts your current token usage in a Claude conversation using **tiktoken** (same tokenizer as Claude)
 - Displays a floating visual bar that changes color as you approach the context limit
+- **Settings window** — click the ⚙️ gear to configure warning/danger thresholds
 - **Auto-spawns** the MCP server if it's not running — bulletproof UX, no manual intervention needed
 - Gives you time to log memories, save notes, or wrap up before compaction
 
@@ -134,13 +135,19 @@ If the overlay can't connect to the MCP server:
 
 ## Configuration
 
-The overlay uses these defaults:
+Click the **⚙️ gear icon** on the overlay bar to open the settings window where you can customize:
+- **Warning threshold** — when the bar turns yellow (default: 70%)
+- **Danger threshold** — when the bar turns red and pulses (default: 85%)
+
+Settings are saved locally and persist between sessions.
+
+### Defaults
 
 | Setting | Value | Description |
 |---------|-------|-------------|
 | Context Window | 200,000 tokens | Claude's context limit |
 | Warning Threshold | 70% | Bar turns yellow |
-| Danger Threshold | 90% | Bar turns red, pulses |
+| Danger Threshold | 85% | Bar turns red, pulses |
 | Reconnect Interval | 3 seconds | Time between connection attempts |
 | Max Reconnect Attempts | 3 | Attempts before spawning MCP |
 | Spawn Cooldown | 10 seconds | Wait between spawn attempts |

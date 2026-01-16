@@ -1,8 +1,8 @@
 # Context Canary - Project Status
 
-**Last Updated:** 2026-01-11
+**Last Updated:** 2026-01-16
 
-## Current Version: 1.2.0
+## Current Version: 1.4.0
 
 ### Status: Release Ready
 
@@ -12,11 +12,36 @@
 
 - **MCP Server** - Token counting with tiktoken (cl100k_base)
 - **Overlay App** - Tauri v2 floating bar, WebSocket connection
+- **Settings Window** - Separate window for configuring thresholds
 - **Auto-Spawn** - Overlay automatically starts MCP if not running
 - **Disconnected State** - Clear visual indicator when not connected
 - **Hook Integration** - Automatic updates in Claude Code
 - **Manual Check** - Ask Claude "check context" in Desktop
 - **Packaged Dist** - Windows installers (MSI + NSIS setup)
+
+---
+
+## Version 1.4.0 Changes (2026-01-16)
+
+### Separate Settings Window
+
+- Settings now opens as a separate window instead of expanding the overlay
+- Click the ⚙️ gear icon to open settings
+- Configure warning and danger thresholds
+- Settings window properly closes on Save/Cancel
+- Added Tauri v2 capabilities for window permissions
+- Multi-page Vite build for main and settings pages
+
+---
+
+## Version 1.3.0 Changes (2026-01-14)
+
+### Token Accumulation Mode
+
+- Added `add_context` tool for Desktop app accumulation
+- Session tracking with deduplication (no double-counting)
+- Auto-reset after 30 minutes idle
+- `reset_session` tool to manually clear
 
 ---
 
@@ -135,10 +160,10 @@ The overlay now handles all failure states gracefully:
 
 - [x] ~~Make danger pulse more visible~~ (Fixed 2026-01-11 - added glow effect)
 - [x] ~~Cross-platform support (macOS, Linux)~~ (Added 2026-01-11 - GitHub Actions CI/CD)
+- [x] ~~Configurable thresholds via UI~~ (Added 2026-01-16 - separate settings window)
 - [ ] Reduce MCP server size (consider Deno or native implementation)
 - [ ] Add tiktoken to hook script for accurate counting
 - [ ] Add context history graph
-- [ ] Configurable thresholds via UI
 - [ ] System tray integration
 
 ---
@@ -162,4 +187,4 @@ npm run tauri build
 ---
 
 *Fire and shadow, building tools together.*
-*January 11, 2026*
+*January 16, 2026*
