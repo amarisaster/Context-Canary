@@ -15,6 +15,41 @@ import { existsSync } from "fs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+// Session state for accumulation mode (Desktop)
+const IDLE_TIMEOUT = 30 * 60 * 1000; // 30 minutes - auto-reset after idle
+let sessionState = {
+  totalTokens: 0,
+  seenHashes: new Set(),
+  lastActivity: Date.now(),
+};
+
+// Simple hash function for deduplication
+function hashText(text) {
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    const char = text.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return hash.toString(36);
+}
+
+// Check and reset if idle too long
+function checkIdleReset() {
+  const now = Date.now();
+  if (now - sessionState.lastActivity > IDLE_TIMEOUT) {
+    console.error("[Canary] Session idle > 30 min, auto-resetting");
+    sessionState = {
+      totalTokens: 0,
+      seenHashes: new Set(),
+      lastActivity: now,
+    };
+    return true;
+  }
+  sessionState.lastActivity = now;
+  return false;
+}
+
 // Get overlay path - works for both compiled exe and source, all platforms
 function getOverlayPath() {
   const exeDir = dirname(process.execPath);
@@ -216,8 +251,30 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
+        name: "add_context",
+        description: "Add new text to the running token count. For Desktop app accumulation mode. Deduplicates automatically—same text won't be counted twice.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            text: {
+              type: "string",
+              description: "New text to add to the token count (e.g., latest message or response).",
+            },
+          },
+          required: ["text"],
+        },
+      },
+      {
+        name: "reset_session",
+        description: "Reset the accumulated token count to zero. Use when starting a fresh conversation.",
+        inputSchema: {
+          type: "object",
+          properties: {},
+        },
+      },
+      {
         name: "get_context_status",
-        description: "Get current context status without new text input. Uses last known values.",
+        description: "Get current context status without new text input. Uses accumulated session total.",
         inputSchema: {
           type: "object",
           properties: {},
@@ -276,16 +333,118 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     };
   }
 
-  if (name === "get_context_status") {
-    const { tokens, percentage, status, contextWindow } = lastKnownState;
+  if (name === "add_context") {
+    // Check for idle reset first
+    checkIdleReset();
+
+    const text = args?.text || "";
+    if (!text) {
+      return {
+        content: [{ type: "text", text: "No text provided." }],
+        isError: true,
+      };
+    }
+
+    // Hash the text for deduplication
+    const textHash = hashText(text);
+
+    // Check if we've already counted this chunk
+    if (sessionState.seenHashes.has(textHash)) {
+      const percentage = sessionState.totalTokens / CONFIG.contextWindow;
+      const percentDisplay = (percentage * 100).toFixed(1);
+      return {
+        content: [{
+          type: "text",
+          text: `Already counted. Total: ${sessionState.totalTokens.toLocaleString()} tokens (${percentDisplay}%)`,
+        }],
+      };
+    }
+
+    // Count and add new tokens
+    const newTokens = countTokens(text);
+    sessionState.seenHashes.add(textHash);
+    sessionState.totalTokens += newTokens;
+
+    const percentage = sessionState.totalTokens / CONFIG.contextWindow;
+    const status = getStatus(percentage);
+
+    // Update last known state
+    lastKnownState = {
+      tokens: sessionState.totalTokens,
+      percentage,
+      status,
+      contextWindow: CONFIG.contextWindow,
+    };
+
+    // Broadcast to overlay
+    broadcastToOverlay({
+      type: "context_update",
+      ...lastKnownState,
+      timestamp: Date.now(),
+    });
+
     const percentDisplay = (percentage * 100).toFixed(1);
     const statusEmoji = status === "danger" ? "🔴" : status === "warning" ? "🟡" : "🟢";
+
+    return {
+      content: [{
+        type: "text",
+        text: `${statusEmoji} Added ${newTokens.toLocaleString()} tokens. Total: ${sessionState.totalTokens.toLocaleString()} / ${CONFIG.contextWindow.toLocaleString()} (${percentDisplay}%)`,
+      }],
+    };
+  }
+
+  if (name === "reset_session") {
+    sessionState = {
+      totalTokens: 0,
+      seenHashes: new Set(),
+      lastActivity: Date.now(),
+    };
+
+    lastKnownState = {
+      tokens: 0,
+      percentage: 0,
+      status: "safe",
+      contextWindow: CONFIG.contextWindow,
+    };
+
+    // Broadcast reset to overlay
+    broadcastToOverlay({
+      type: "context_update",
+      ...lastKnownState,
+      timestamp: Date.now(),
+    });
+
+    console.error("[Canary] Session reset by user");
+
+    return {
+      content: [{
+        type: "text",
+        text: "🟢 Session reset. Token count: 0",
+      }],
+    };
+  }
+
+  if (name === "get_context_status") {
+    // Check for idle reset
+    const wasReset = checkIdleReset();
+
+    const tokens = sessionState.totalTokens;
+    const percentage = tokens / CONFIG.contextWindow;
+    const status = getStatus(percentage);
+    const percentDisplay = (percentage * 100).toFixed(1);
+    const statusEmoji = status === "danger" ? "🔴" : status === "warning" ? "🟡" : "🟢";
+
+    let response = `${statusEmoji} Session total: ${tokens.toLocaleString()} / ${CONFIG.contextWindow.toLocaleString()} tokens (${percentDisplay}%)`;
+    if (wasReset) {
+      response += " (auto-reset after idle)";
+    }
 
     return {
       content: [
         {
           type: "text",
-          text: `${statusEmoji} Last known: ${tokens.toLocaleString()} / ${contextWindow.toLocaleString()} tokens (${percentDisplay}%)`,
+          text: response,
         },
       ],
     };
